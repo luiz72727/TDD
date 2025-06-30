@@ -1,47 +1,50 @@
 -- Aguarda o jogo carregar completamente
 repeat task.wait() until game:IsLoaded()
 
--- Define os principais objetos do jogador
+-- Referências principais
 local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-
--- Aguarda o personagem carregar com a parte principal do corpo
 repeat task.wait() until character:FindFirstChild("HumanoidRootPart")
 
--- Teleporta para o portal Nightmare (ajuste a posição se o jogo mudar)
+-- Teleporta pro portal Nightmare
 local nightmarePosition = Vector3.new(417.38, 162, -6)
 character:MoveTo(nightmarePosition)
 print("🟪 Teleportado para o portal Nightmare")
 
--- Aguarda ser colocado dentro da partida
-task.wait(10)
+-- Aguarda um pouco pra entrar na sala
+task.wait(2)
 
--- Procura o botão "Start" e tenta clicar automaticamente
+-- Começa a tentar clicar no botão Start
 local gui = player:WaitForChild("PlayerGui")
 local success = false
 
-for i = 1, 60 do -- tenta por até 30 segundos (0.5 * 60)
+for i = 1, 200 do -- tenta por até 20 segundos
     for _, obj in pairs(gui:GetDescendants()) do
         if obj:IsA("TextButton") and obj.Text and obj.Text:lower() == "start" then
-            if obj.Visible and obj.Active and obj.AutoButtonColor ~= false then
-                print("🟢 Botão Start encontrado e ativo, clicando...")
+            if obj.Visible and obj.AbsoluteSize.Magnitude > 0 then
+                local pos = obj.AbsolutePosition + (obj.AbsoluteSize / 2)
 
-                pcall(function() obj:Activate() end)
-                pcall(function() obj.MouseButton1Click:Fire() end)
-                pcall(function() obj.MouseButton1Down:Fire() end)
+                -- Clica no centro do botão
+                VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
+                VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
 
+                print("🟢 Tentando clicar no botão Start...")
                 success = true
-                break
             end
         end
     end
-    if success then break end
-    task.wait(0.25) -- reduzido para tentar com mais frequência
+    if success then
+        -- continua tentando clicar por alguns segundos, mesmo depois de achar o botão
+        task.wait(0.1)
+    else
+        task.wait(0.05)
+    end
 end
 
 if success then
-    print("🎮 Partida iniciada com sucesso!")
+    print("🎮 Tentativas de clique finalizadas. Se o botão respondeu, a partida começou!")
 else
-    warn("❌ Não foi possível encontrar o botão Start.")
+    warn("❌ Não foi possível clicar no botão Start.")
 end
